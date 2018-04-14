@@ -91,18 +91,24 @@ export default {
     }
   },
   watch: {
-    paths(val) {
-      const { ctx, canvas } = this;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      val.forEach((path, index) => {
-        if (index % 4 === 0 && index != 0) {
-          ctx.beginPath();
-          ctx.moveTo(val[index - 4][".value"], val[index - 3][".value"]);
-          ctx.lineTo(val[index - 2][".value"], val[index - 1][".value"]);
-          ctx.closePath();
-          ctx.stroke();
+    paths: {
+      handler: function(val) {
+        const { ctx, canvas } = this;
+        if (!canvas) {
+          return;
         }
-      });
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        val.forEach((path, index) => {
+          if (index % 4 === 0 && index != 0) {
+            ctx.beginPath();
+            ctx.moveTo(val[index - 4][".value"], val[index - 3][".value"]);
+            ctx.lineTo(val[index - 2][".value"], val[index - 1][".value"]);
+            ctx.closePath();
+            ctx.stroke();
+          }
+        });
+      },
+      immediate: true
     }
   }
 };

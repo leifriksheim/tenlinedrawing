@@ -15,6 +15,10 @@
 .game__canvas {
   margin: 0 auto;
   width: 350px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
 }
 </style>
 
@@ -22,13 +26,16 @@
 <template>
   <div class="game">
 
-    <div class="game__details">
-      {{10 - currentCount['.value']}} lines left
+    <div class="game__details" v-if="users.length > 1">
+      <div v-if="count['.value'] === 3">Finished! Wait for a fresh start.</div>
+      <div v-else>
+        Draw
+        <b>{{animal['.value']}}</b>: {{3 - count['.value']}} lines left</div>
     </div>
 
     <div class="game__canvas">
-      <draw-canvas v-if="users.length > 1" :height="400" :width="350" :disabled="disabled" :onLineEnd="onLineEnd" :paths="paths" :updatePaths="updatePaths" />
-      <div v-else>Waiting for another player</div>
+      <draw-canvas v-if="users.length > 1" :height="400" :width="350" :disabled="disabled || count['.value'] === 3" :onLineEnd="onLineEnd" :paths="paths" :updatePaths="updatePaths" />
+      <h2 v-else>Waiting for another player</h2>
     </div>
 
     <div class="game__users">
@@ -41,56 +48,19 @@
 <script>
 import DrawCanvas from "../components/DrawCanvas";
 import UserBar from "../components/UserBar";
-import { db, auth, users, getNextUserId } from "../firebase";
-
-const setNextUser = uid => {
-  db.ref("users").once("value", function(snapshot) {
-    const users = snapshot.val();
-    const numUsers = snapshot.numChildren();
-    const userIndex = Object.keys(users).findIndex(id => id === uid);
-    const userArray = Object.keys(users).map(id => users[id]);
-
-    const nextUser = userArray.reduce(
-      (acc, user, index) => {
-        if (!user.online || user.uid === uid) {
-          return { ...acc };
-        }
-        const isAfterUser = index > userIndex ? true : false;
-        const lastDistance = Math.abs(userIndex - acc.index);
-        const currDistance = Math.abs(userIndex - index);
-        console.log(
-          "user",
-          user,
-          "userIndex",
-          userIndex,
-          "isAfterUser",
-          isAfterUser,
-          "lastDistance",
-          lastDistance,
-          "currDistance",
-          currDistance
-        );
-        if (isAfterUser && currDistance >= lastDistance) {
-          return { uid: user.uid, index: index };
-        }
-        if (!isAfterUser && currDistance <= lastDistance) {
-          return { uid: user.uid, index: index };
-        }
-      },
-      { uid: "", index: 0 }
-    );
-    db.ref("game/currentPlayer").set(nextUser.uid);
-  });
-};
+import { db } from "../firebase";
+import { getRandomAnimal } from "../animals";
 
 export default {
   components: { DrawCanvas, UserBar },
+  props: { uid: String },
   data() {
     return {
       disabled: true,
+      animal: {},
       currentUser: {},
       currentPlayer: {},
-      currentCount: {},
+      count: {},
       paths: [],
       users: []
     };
@@ -98,35 +68,39 @@ export default {
   firebase() {
     return {
       currentUser: {
-        source: db.ref(`/users/${auth.currentUser.uid}`),
+        source: db.ref(`/users/${this.uid}`),
         asObject: true
       },
       currentPlayer: {
         source: db.ref("/game/currentPlayer"),
         asObject: true
       },
-      currentCount: {
-        source: db.ref("game/currentCount"),
+      animal: {
+        source: db.ref("/game/animal"),
+        asObject: true
+      },
+      count: {
+        source: db.ref("game/count"),
         asObject: true
       },
       paths: db.ref("/game/paths"),
-      users: db
-        .ref("/users")
-        .orderByChild("online")
-        .equalTo(true)
+      users: db.ref("/users")
     };
   },
   watch: {
     currentPlayer(val) {
-      if (val[".value"] === auth.currentUser.uid) {
+      if (val[".value"] === this.uid) {
         this.disabled = false;
       }
     }
   },
+  created() {
+    if (!this.uid) {
+      this.$router.push("/login");
+    }
+  },
   mounted() {
-    setNextUser("KsAky3JENXWwH6oLmOAycvjGwDf1");
-    this.$firebaseRefs.currentUser.update({ online: true });
-    this.$firebaseRefs.currentUser.onDisconnect().update({ online: false });
+    this.$firebaseRefs.currentUser.onDisconnect().remove();
   },
   methods: {
     updatePaths(lastX, lastY, x, y) {
@@ -136,19 +110,30 @@ export default {
       this.$firebaseRefs.paths.push(y);
     },
     clearDrawing() {
-      this.$firebaseRefs.paths.set("");
-      this.$firebaseRefs.currentCount.set(0);
-      db.ref("game/lastPlayer").set(auth.currentUser.uid);
+      setTimeout(() => {
+        this.$firebaseRefs.paths.set("");
+        this.$firebaseRefs.count.set(0);
+      }, 3000);
     },
-    async onLineEnd() {
-      this.disabled = true;
-      const count = this.currentCount[".value"];
-      if (count === 9) {
-        this.clearDrawing();
-        return;
+    setNextUser(uid) {
+      const users = this.users;
+      const numUsers = users.length;
+      const userIndex = users.findIndex(user => user.uid === uid);
+      if (userIndex + 1 === numUsers) {
+        this.$firebaseRefs.currentPlayer.set(users[0][".key"]);
+      } else {
+        this.$firebaseRefs.currentPlayer.set(users[userIndex + 1][".key"]);
       }
-      db.ref("game/currentCount").set(count + 1);
-      db.ref("game/lastPlayer").set(auth.currentUser.uid);
+    },
+    onLineEnd() {
+      this.disabled = true;
+      const count = this.count[".value"];
+      db.ref("game/count").set(count + 1);
+      if (count === 2) {
+        this.clearDrawing();
+        this.$firebaseRefs.animal.set(getRandomAnimal());
+      }
+      this.setNextUser(this.uid);
     }
   }
 };

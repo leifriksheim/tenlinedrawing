@@ -6,6 +6,7 @@ body {
 }
 #app {
   overflow: hidden;
+  max-height: 100vh;
 }
 </style>
 

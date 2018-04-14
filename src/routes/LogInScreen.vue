@@ -16,10 +16,15 @@
 .login-title {
   text-align: center;
   margin-bottom: 40px;
+  font-size: 40px;
 }
 
 .login-form {
   width: 100%;
+}
+
+.login-form__avatar {
+  border-radius: 50%;
 }
 
 .login-form__input {
@@ -28,39 +33,25 @@
   padding-left: 10px;
   padding-right: 10px;
   display: block;
+  text-align: center;
   margin-bottom: 10px;
+  border: 2px solid #fff;
+  border-radius: 5px;
+  color: #fff;
+
+  &::placeholder {
+    color: #fff;
+  }
 }
 
 .login-form__button {
   width: 100%;
   height: 60px;
-  color: white;
-  background: rgb(34, 66, 171);
+  color: #393af9;
+  font-family: "Poppins";
+  background: #fff;
   text-align: center;
   position: relative;
-
-  &.--loading:after {
-    content: "";
-    box-sizing: border-box;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translateX(-50%) rotate(0deg);
-    width: 20px;
-    height: 20px;
-    margin-top: -10px;
-    margin-left: -10px;
-    border-radius: 50%;
-    border: 2px solid #ccc;
-    border-top-color: #333;
-    animation: spinner 0.6s linear infinite;
-  }
-}
-
-@keyframes spinner {
-  to {
-    transform: translateX(-50%) rotate(360deg);
-  }
 }
 </style>
 
@@ -70,13 +61,15 @@
     <div class="login-wrapper">
 
       <div class="login-title">
-        10 Line Drawing
+        <img src="../assets/logo.svg" width="60" /><br> The three line animal
       </div>
 
       <div class="login-form">
-        <DrawCanvas :width="400" :disabled="false" :height="400" :paths="paths" :onLineEnd="onLineEnd" :updatePaths="updatePaths" />
-        <input class="login-form__input" placeholder="Your nickname" v-model="userName" @keyup.enter="joinGame" />
-        <button class="login-form__button" :class="{'--loading': isLoading}" @click="joinGame">{{!isLoading ? 'Start' : ''}}</button>
+
+        <input class="login-form__input" autofocus placeholder="Your nickname" v-model="userName" @keyup.enter="joinGame" />
+
+        <button class="login-form__button" @click="joinGame">Start</button>
+
       </div>
 
     </div>
@@ -84,34 +77,27 @@
 </template>
 
 <script>
-import DrawCanvas from "../components/DrawCanvas";
 import UserBar from "../components/UserBar";
-import { db, auth } from "../firebase";
+import { db } from "../firebase";
+import uuid from "uuid";
 
 export default {
-  components: { DrawCanvas },
   data() {
     return {
       userName: "",
-      isLoading: false,
-      paths: []
+      myUserId: uuid()
     };
   },
   methods: {
-    updatePaths(lastX, lastY, x, y) {
-      this.paths.push(lastX, lastY, x, y);
-    },
-    onLineEnd() {
-      console.log("end");
-    },
     joinGame() {
-      const userName = this.userName;
-      this.isLoading = true;
+      db.ref(`users/${this.myUserId}`).set({
+        name: this.userName,
+        uid: this.myUserId
+      });
 
-      auth.signInAnonymously().then(user => {
-        db.ref(`users/${user.uid}`).set({ name: userName, uid: user.uid });
-        this.loading = false;
-        this.$router.push("/");
+      this.$router.push({
+        name: "game",
+        params: { uid: this.myUserId }
       });
     }
   }
