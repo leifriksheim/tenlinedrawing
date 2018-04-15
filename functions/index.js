@@ -11,30 +11,14 @@ admin.initializeApp({
 
 const db = admin.database();
 
-const setNextUser = uid => {
-  db.ref("users").once("value", function(snapshot) {
-    const users = snapshot.val();
-    const numUsers = snapshot.numChildren();
-    const userIds = Object.keys(users);
-    const userIndex = userIds.findIndex(id => id === uid);
-    if (userIndex + 1 === numUsers) {
-      db.ref("game/currentPlayer").set(userIds[0]);
-    } else {
-      db.ref("game/currentPlayer").set(userIds[userIndex + 1]);
-    }
-  });
-};
-
-exports.onUserLogin = functions.database.ref("/users/{uid}").onCreate(event => {
-  const uid = event.params.uid;
-  db.ref("users").once("value", function(snapshot) {
-    const users = snapshot.val();
-    const numUsers = snapshot.numChildren();
-    if (numUsers === 1) {
-      db.ref("game/currentPlayer").set(uid);
-      db.ref("game/count").set(0);
-    }
-  });
+exports.onUsers = functions.database.ref("/users").onCreate(event => {
+  const users = event.data.val();
+  const numUsers = event.data.numChildren();
+  const userArray = Object.keys(users);
+  if (numUsers === 1) {
+    db.ref("game/currentPlayer").set(userArray[0]);
+    db.ref("game/count").set(0);
+  }
 });
 
 exports.onUserSignOff = functions.database
@@ -52,10 +36,3 @@ exports.onUserSignOff = functions.database
       }
     });
   });
-
-/*exports.onUserSubmit = functions.database
-  .ref("/game/lastPlayer")
-  .onWrite(event => {
-    const lastPlayer = event.data.val();
-    setNextUser(lastPlayer);
-  });*/

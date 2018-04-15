@@ -1,16 +1,18 @@
 <style lang="scss">
 .game {
-  margin-top: 20px;
+  margin-top: -60px;
+  height: 100vh;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .game__details {
   text-align: center;
-  padding-top: 20px;
-  padding-bottom: 20px;
-  border: 2px solid #fff;
-  border-radius: 5px 5px 0px 0px;
   width: 350px;
-  height: 60px;
+  padding-bottom: 10px;
   margin: 0 auto;
+  font-size: 21px;
 }
 .game__canvas {
   margin: 0 auto;

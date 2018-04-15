@@ -29,8 +29,8 @@
   padding-left: 10px;
   padding-right: 10px;
   padding-top: 5px;
-  border-top: 1px solid #eee;
-  width: 100%;
+  background: rgba(43, 43, 199, 0.66);
+  width: 100vw;
   overflow-x: scroll;
   -webkit-overflow-scrolling: touch;
 }
@@ -38,7 +38,7 @@
 .user-bar__users {
   display: flex;
   height: 60px;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
 }
 
@@ -51,10 +51,12 @@
   height: 30px;
   padding: 0 30px;
   border-radius: 5px;
-  color: #393af9;
-  background: #fff;
+  border: 1px solid #fff;
+  color: #fff;
 
   &.--active {
+    background: #fff;
+    color: #393af9;
     animation: border-pulse 0.5s infinite;
     -webkit-animation: border-pulse 0.5s infinite;
   }
